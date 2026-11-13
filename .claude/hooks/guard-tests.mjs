@@ -98,8 +98,10 @@ function judgeFileChange(root, file, sessionId) {
 }
 
 // "tracked", "untracked", or "unknown" when git is missing or the project is no repository.
+// icase: "Tests/talks.spec.ts" is the committed "tests/talks.spec.ts", as Windows sees it.
 function gitTracking(root, relPath) {
-  const result = spawnSync("git", ["ls-files", "-z", "--", relPath], { cwd: root, encoding: "utf8" });
+  const pathspec = `:(literal,icase)${relPath}`;
+  const result = spawnSync("git", ["ls-files", "-z", "--", pathspec], { cwd: root, encoding: "utf8" });
   if (result.status !== 0) return "unknown";
   return result.stdout ? "tracked" : "untracked";
 }
@@ -159,9 +161,11 @@ const FILE_CHANGING_COMMANDS = [
   new RegExp(`>>?\\|?\\s*["']?[^\\s"'|;&]*(${TEST_DIR_NAMES})[\\\\/]`, "i"), // redirect into a test folder
   /\bsed\b[^|;&]*\s(-[a-zA-Z]*i|--in-place)/, // sed -i, -Ei, -i.bak, --in-place
   /\bperl\b[^|;&]*\s-[a-z]*i/, // perl -i, -pi
-  /\b(tee|mv|cp|rm|rmdir|touch|truncate|unlink|del|erase|move|copy|ren)\b/i,
-  /\bgit(\s+(-[cC]\s+\S+|--?[\w-]+(=\S+)?))*\s+(checkout|restore|rm|mv|apply)\b/i, // also "git -C tests restore x"
+  /\bg?awk\b[^|;&]*\s-i\s*inplace\b/, // awk -i inplace
+  /\b(tee|mv|cp|rm|rmdir|touch|truncate|unlink|ln|dd|rsync|patch|del|erase|move|copy|ren)\b/i,
+  /\bgit(\s+(-[cC]\s+\S+|--?[\w-]+(=\S+)?))*\s+(checkout|restore|rm|mv|apply|stash|clean)\b/i, // also "git -C tests restore x"
   /\b(Set-Content|Add-Content|Out-File|Clear-Content|New-Item|Remove-Item|Move-Item|Copy-Item|Rename-Item)\b/i,
+  /\b(sc|ac|ni|ri|rd|mi|cpi|rni)\b/i, // their PowerShell aliases
   /\[(System\.)?IO\.File\]::/i, // the .NET file API, from PowerShell
 ];
 
